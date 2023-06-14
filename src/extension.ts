@@ -32,25 +32,12 @@ export function activate (context: vscode.ExtensionContext) {
 
 async function prefixCommit (repository: Repository) {
   const { isSuffix, replacement = '[$1] ', pattern = '(.*)', patternIgnoreCase, replacementIsFunction } = vscode.workspace.getConfiguration('gitPrefix')
-  const branchRegEx = patternIgnoreCase ? new RegExp(pattern, 'i') : new RegExp(pattern)
   const branchName = (repository.state.HEAD && repository.state.HEAD.name) || ''
+  const regEx = new RegExp("(NEUR-|NEUR_)[0-9]*($|_)", 'g')
 
-  if (branchRegEx.test(branchName)) {
-    let ticket
-    if (replacementIsFunction) {
-      ticket = branchName.replace(
-        branchRegEx,
-        (_substring: string, ...args: any[]) =>
-          // eslint-disable-next-line no-new-func
-          Function(
-            ...(Array(args.length).fill(1).map((x, y) => `p${x + y}`)), // Build args 'p1', 'p2', 'p3'....
-            `return ${replacement}`
-          )(...args)
-      )
-    } else {
-      ticket = branchName.replace(branchRegEx, replacement)
-    }
-    repository.inputBox.value = isSuffix ? `${repository.inputBox.value}${ticket}` : `${ticket}${repository.inputBox.value}`
+  if (regEx.test(branchName)) {
+    let ticket = branchName.match(regEx)?.[0]
+    repository.inputBox.value = isSuffix ? `${repository.inputBox.value}${ticket}:` : `${ticket}: ${repository.inputBox.value}`
   } else {
     const message = `Pattern ${pattern} not found in branch ${branchName}`
     const editPattern = 'Edit Pattern'
